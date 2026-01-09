@@ -9,39 +9,51 @@
 std::vector<int> intVec;
 int clk_pin = 2;
 int input_pin = 15;
-int end_signal_pin = 0;
+int end_signal_pin = 4;
+//int clken_pin = 16;
 
 void setup() {
   // put your setup code here, to run once:
-  pinMode(clk_pin, INPUT);
+  pinMode(clk_pin, OUTPUT);
   pinMode(input_pin, INPUT);
   pinMode(end_signal_pin, INPUT);
+ // pinMode(clken_pin, INPUT);
   Serial.begin(115200);
 }
 
-int counter = 0;
+int counter = 2;
 bool prevClk = false;
+bool prevEnd = false;
 
 void loop() {
   // put your main code here, to run repeatedly:
   int num = 0;
-  while (counter <= 2) {
-    if(digitalRead(clk_pin) && !prevClk) {
+  //if(digitalRead(clken_pin)){
+    while (counter >= 0) {
+      delay(1000);
+      digitalWrite(clk_pin, HIGH);
       if(digitalRead(input_pin)) {
         num += 1 << counter;
       }
-      counter++;
-      prevClk = true;
-    } else if(!digitalRead(clk_pin)) {
-      prevClk = false;
+      counter--;
+      delay(1000);
+      digitalWrite(clk_pin, LOW);
     }
-  }
-  intVec.push_back(num);
+    Serial.println(num);
+  //}
+  counter = 2;
+  if(num != 1) intVec.push_back(num);
 
   if(digitalRead(end_signal_pin)){
-    for(int i : intVec) {
-      Serial.println(i);
+    if(!prevEnd) {
+      for(int i : intVec) {
+        Serial.print(i);
+      }
+      prevEnd = true;
     }
+  } else {
+    prevEnd = false;
   }
+
 }
 
