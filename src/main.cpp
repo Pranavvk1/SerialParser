@@ -1,23 +1,37 @@
 #include <Arduino.h>
 #include <vector>
 
-/*two inputs- clk and x (on input_pin)
+/*two inputs- clk and x (on INPUT_PIN)
 *int vector- used to store parsed ints.
 *counter used to count till 3 - increment whenever clk goes high
 */
 
-std::vector<int> intVec;
-int clk_pin = 2;
-int input_pin = 15;
-int end_signal_pin = 4;
-//int clken_pin = 16;
+int CLK_PIN = 2;
+int INPUT_PIN = 15;
+int END_SIGNAL_PIN = 4;
+int FSM_RST_PIN = 13;
+
+int readMode() {
+  digitalWrite(FSM_RST_PIN, LOW);
+  delay(1000);
+  digitalWrite(FSM_RST_PIN, HIGH);
+  digitalWrite(CLK_PIN, HIGH);
+  int num = digitalRead(INPUT_PIN);
+  while(!digitalRead(END_SIGNAL_PIN)) {
+    delay(1000);
+    digitalWrite(CLK_PIN, LOW);
+    delay(1000);
+    digitalWrite(CLK_PIN, HIGH);
+  }
+  return num;
+}
 
 void setup() {
   // put your setup code here, to run once:
-  pinMode(clk_pin, OUTPUT);
-  pinMode(input_pin, INPUT);
-  pinMode(end_signal_pin, INPUT);
- // pinMode(clken_pin, INPUT);
+  pinMode(CLK_PIN, OUTPUT);
+  pinMode(INPUT_PIN, INPUT);
+  pinMode(END_SIGNAL_PIN, INPUT);
+  pinMode(FSM_RST_PIN, OUTPUT);
   Serial.begin(115200);
 }
 
@@ -27,33 +41,45 @@ bool prevEnd = false;
 
 void loop() {
   // put your main code here, to run repeatedly:
-  int num = 0;
-  //if(digitalRead(clken_pin)){
-    while (counter >= 0) {
+  std::vector<int> intVec;
+  int isChar = readMode();
+  if(isChar) {
+    Serial.println("reading chars");
+  } else {
+    Serial.println("reading ints");
+  }
+  delay(1000);
+  digitalWrite(CLK_PIN, LOW);
+  delay(1000);
+  digitalWrite(CLK_PIN, HIGH);
+  Serial.println("read starting from next cycle");
+  delay(1000);
+  digitalWrite(CLK_PIN, LOW);
+
+  while(!digitalRead(END_SIGNAL_PIN)) {
+    int num = 0;
+    while (counter >= 0) { //read num
       delay(1000);
-      digitalWrite(clk_pin, HIGH);
-      if(digitalRead(input_pin)) {
+      digitalWrite(CLK_PIN, HIGH);
+      if(digitalRead(INPUT_PIN)) {
         num += 1 << counter;
       }
       counter--;
       delay(1000);
-      digitalWrite(clk_pin, LOW);
-    }
-    Serial.println(num);
-  //}
-  counter = 2;
-  if(num != 1) intVec.push_back(num);
-
-  if(digitalRead(end_signal_pin)){
-    if(!prevEnd) {
-      for(int i : intVec) {
-        Serial.print(i);
-      }
-      prevEnd = true;
-    }
-  } else {
-    prevEnd = false;
+      digitalWrite(CLK_PIN, LOW);
+    } 
+    counter = 2;
+    if(num != 1) intVec.push_back(num);
   }
 
+  for(int i : intVec) {
+    if(isChar) {
+      Serial.print((char) (i + 97));
+    } else {
+      Serial.print(i);
+    }
+  }
+  Serial.println();
 }
+
 
